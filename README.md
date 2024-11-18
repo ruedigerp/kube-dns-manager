@@ -4,16 +4,16 @@ The Ingress DNS Operator automatically manages DNS records for Kubernetes Ingres
 
 ## Features
 
-	1.	Dynamic DNS Record Management
-	    •	Automatically creates, updates, or deletes DNS records for Ingress resources.
-	2.	Traefik Integration
-	    •	Retrieves the LoadBalancer IP of a Traefik service for use in DNS records.
-	3.	Support for Multiple DNS Providers
-	    •	Works with Cloudflare and BIND via annotations.
-	4.	Finalizer Mechanism
-	    •	Ensures proper cleanup of DNS records when ingress resources are deleted.
-	5.	Exclude Domains
-	    •	Configurable list of domains to exclude from DNS management.
+1.	Dynamic DNS Record Management
+    •	Automatically creates, updates, or deletes DNS records for Ingress resources.
+2.	Traefik Integration
+    •	Retrieves the LoadBalancer IP of a Traefik service for use in DNS records.
+3.	Support for Multiple DNS Providers
+    •	Works with Cloudflare and BIND via annotations.
+4.	Finalizer Mechanism
+    •	Ensures proper cleanup of DNS records when ingress resources are deleted.
+5.	Exclude Domains
+    •	Configurable list of domains to exclude from DNS management.
 
 # Ingress Configuration
 
