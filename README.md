@@ -1,119 +1,297 @@
-# temp
-// TODO(user): Add simple overview of use/purpose
+# Ingress DNS Operator
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+The Ingress DNS Operator automatically manages DNS records for Kubernetes Ingress resources by integrating with external DNS providers like Cloudflare and BIND. It updates DNS records when new ingress resources are created or modified, and removes DNS records when ingress resources are deleted. This operator leverages annotations on Ingress objects to determine configuration details, such as the DNS provider and related settings.
 
-## Getting Started
+## Features
 
-### Prerequisites
-- go version v1.22.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+	1.	Dynamic DNS Record Management
+	•	Automatically creates, updates, or deletes DNS records for Ingress resources.
+	2.	Traefik Integration
+	•	Retrieves the LoadBalancer IP of a Traefik service for use in DNS records.
+	3.	Support for Multiple DNS Providers
+	•	Works with Cloudflare and BIND via annotations.
+	4.	Finalizer Mechanism
+	•	Ensures proper cleanup of DNS records when ingress resources are deleted.
+	5.	Exclude Domains
+	•	Configurable list of domains to exclude from DNS management.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+# Ingress Configuration
+
+To enable DNS management, you must annotate your Ingress resources with the following keys:
+
+## Required Annotations
+
+| Key	                    | Value	                        | Description
+|---------------------------|-------------------------------|---------------------------------------|
+| dns.configuration/type	| cloudflare or bind	        | The type of DNS provider to use. |
+| dns.configuration/source	| <configmap-or-secret-name>	| The name of the ConfigMap or Secret containing DNS provider credentials. |
+
+## Example Ingress
+
+  apiVersion: networking.k8s.io/v1  
+  kind: Ingress  
+  metadata:  
+    name: example-ingress  
+    annotations:  
+      dns.configuration/type: "cloudflare"  
+      dns.configuration/source: "example-com-dns-config"  
+  spec:  
+    rules:  
+      - host: "example.com"  
+        http:  
+          paths:  
+            - path: "/"  
+              pathType: ImplementationSpecific  
+              backend:  
+                service:  
+                  name: example-service  
+                  port:  
+                    number: 80  
+
+# Operator Configuration
+
+The operator reads settings from a ConfigMap that provides details about the Traefik service and the list of excluded domains.
+
+## ConfigMap
+
+| Key	              | Description	                                                        | Default Value |
+|---------------------|---------------------------------------------------------------------|---------------|
+| traefikServiceName  | The name of the Traefik service whose LoadBalancer IP will be used.	| traefik       |
+| traefikNamespace	  |  The namespace where the Traefik service is located.	            | kube-system   |
+| excludeDomains	  |  A YAML array of domains to exclude from DNS management.	        | None          |
+
+### Example ConfigMap
+
+    apiVersion: v1  
+    kind: ConfigMap  
+    metadata:  
+      name: dns-operator-config  
+      namespace: kube-system  
+    data:  
+      traefikServiceName: "traefik"  
+      traefikNamespace: "kube-system"  
+      excludeDomains: |  
+        - "excluded-domain.com"  
+        - "another-excluded.com"  
+
+# DNS Provider Configurations
+
+The operator uses either a ConfigMap or a Secret to store credentials and configuration for the DNS provider.
+
+## Example for Cloudflare
+
+### ConfigMap
+
+    apiVersion: v1  
+    kind: ConfigMap  
+    metadata:  
+      name: example-com-dns-config
+      namespace: kube-system  
+    data:  
+      token: "<cloudflare-api-token>"  
+      zoneid: "<cloudflare-zone-id>"  
+
+### Secret
+
+    apiVersion: v1  
+    kind: Secret  
+    metadata:  
+      name: dns-config  
+      namespace: kube-system  
+    type: Opaque  
+    data:  
+      token: "<base64-cloudflare-api-token>"  
+      zoneid: "<base64-cloudflare-zone-id>"  
+
+## Example for BIND
+
+### ConfigMap
+
+    apiVersion: v1  
+    kind: ConfigMap  
+    metadata:  
+      name: dns-config  
+      namespace: kube-system  
+    data:  
+      bindServer: "bind-server.example.com"  
+      bindPort: "53" 
+      hmackey: "abcdefg1234567890"
+      zone: "example.com" 
+
+# Operator Workflow
+
+	1.	Create or Update Ingress
+	•	Extracts the domains from the ingress rules.
+	•	Filters excluded domains.
+	•	Retrieves the LoadBalancer IP from the Traefik service.
+	•	Adds or updates DNS A and TXT records.
+	2.	Delete Ingress
+	•	Uses a finalizer to clean up associated DNS records.
+	•	Removes A and TXT records for the ingress domains.
+
+# Known Limitations
+
+	•	Only supports A and TXT DNS records.
+	•	Requires manual setup of the ConfigMap and Secret for DNS providers.
+
+This README provides a comprehensive guide to setting up and using the Ingress DNS Operator. For additional details or support, feel free to contact the project maintainers.
 
 
-```sh
-GOOS=linux GOARCH=arm64 go build -a -o manager cmd/main.go && make docker-build docker-push IMG=ghcr.io/ruedigerp/kube-dns-manager:v0.0.1 TARGETARCH=arm64 TARGETOS=linux
-```
+# DNS Operator für Ingress-Objekte
 
-```sh
-make docker-build docker-push IMG=<some-registry>/temp:tag
-```
+Der DNS Operator automatisiert die Verwaltung von DNS-Einträgen für Kubernetes-Ingress-Ressourcen. Basierend auf benutzerdefinierten Annotationen und Konfigurationen erstellt, aktualisiert oder entfernt der Operator DNS-Einträge für spezifische Domains.
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+## Funktionalität des Operators
 
-**Install the CRDs into the cluster:**
+	1.	Verarbeiten von Ingress-Ressourcen:
+Der Operator beobachtet Ingress-Ressourcen im Cluster und reagiert auf Änderungen oder neue Ressourcen.
+	2.	DNS-Typen:
+Der Operator unterstützt zwei DNS-Typen, die über die Annotation dns.configuration/type festgelegt werden:
+	•	bind: Erstellt und verwaltet DNS-Einträge über BIND.
+	•	cloudflare: Verwendet die Cloudflare-API zur Verwaltung von DNS-Einträgen.
+	3.	Quellen für DNS-Konfiguration:
+Die spezifischen Konfigurationen für den DNS-Server werden aus einer ConfigMap oder einem Secret geladen. Die Quelle wird über die Annotation dns.configuration/source definiert.
+	4.	LoadBalancer-IP:
+Der Operator extrahiert die LoadBalancer-IP des Traefik-Services und verwendet diese für die Erstellung der DNS-Einträge.
+	5.	Finalizer:
+Der Operator fügt einen Finalizer zu Ingress-Objekten hinzu, um sicherzustellen, dass die DNS-Einträge vor der endgültigen Löschung der Ressource entfernt werden.
+	6.	Domain-Filter:
+Domains können durch die ConfigMap-Einstellungen ausgeschlossen werden.
 
-```sh
-make install
-```
+## Annotationen für Ingress-Ressourcen
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+Die folgenden Annotationen sind erforderlich, um den Operator zu konfigurieren:
 
-```sh
-make deploy IMG=<some-registry>/temp:tag
-```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+| Key	                    | Value	                        | Description |
+|---------------------------|-------------------------------|---------------------------------------|
+| dns.configuration/type	| cloudflare oder bind	        | Gibt den Type des DNS Providers an.   |
+| dns.configuration/source	| <configmap-or-secret-name>	| Definiert die Quelle der DNS-Konfiguration. Dies ist der Name einer ConfigMap oder eines Secrets, das die erforderlichen Zugangsdaten enthält. |
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+Vom Operator verwendete Annotation zur Nachverfolgung von Domains, die bereits verarbeitet wurden.
 
-```sh
-kubectl apply -k config/samples/
-```
+## ConfigMap für den Operator
 
->**NOTE**: Ensure that the samples has default values to test it out.
+Der Operator benötigt eine zentrale ConfigMap, um grundlegende Einstellungen zu laden.
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+### Name der ConfigMap: dns-operator-config
 
-```sh
-kubectl delete -k config/samples/
-```
+Beispiel-Inhalt:
 
-**Delete the APIs(CRDs) from the cluster:**
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: dns-operator-config
+    namespace: kube-system
+  data:
+    traefikServiceName: "traefik"
+    traefikNamespace: "kube-system"
+    excludedomains: |
+      - "excluded-domain.com"
+      - "another-excluded-domain.com"
 
-```sh
-make uninstall
-```
+### Erläuterung:
 
-**UnDeploy the controller from the cluster:**
+| Key	              | Description	                                              | Default Value |
+|---------------------|-----------------------------------------------------------|---------------|
+| traefikServiceName  | Name des Traefik-Services                                 | traefik |
+| traefikNamespace    | Namespace des Traefik-Services                            | kube-system |
+| excludedomains      | YAML-Liste von Domains, die der Operator ignorieren soll. | |
 
-```sh
-make undeploy
-```
+## ConfigMap oder Secret für DNS-Konfiguration
 
-## Project Distribution
+Je nach dns.configuration/source müssen entweder eine ConfigMap oder ein Secret mit den DNS-Zugangsdaten bereitgestellt werden.
 
-Following are the steps to build the installer and distribute this project to users.
+## Beispiel: ConfigMap für Cloudflare
 
-1. Build the installer for the image built and published in the registry:
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: cloudflare-config
+    namespace: kube-system
+  data:
+    zoneid: "<ZONE_ID>"
+    token: "<API_TOKEN>"
 
-```sh
-make build-installer IMG=<some-registry>/temp:tag
-```
+## Beispiel: Secret für BIND
 
-NOTE: The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without
-its dependencies.
+    apiVersion: v1  
+    kind: ConfigMap  
+    metadata:  
+      name: dns-config  
+      namespace: kube-system  
+    data:  
+      bindServer: "bind-server.example.com"  
+      bindPort: "53" 
+      hmackey: "abcdefg1234567890"
+      zone: "example.com"
 
-2. Using the installer
+## Beispiel-Ingress-Ressource
 
-Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
+### Cloudflare-basierte DNS-Einträge
 
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/temp/<tag or branch>/dist/install.yaml
-```
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: example-ingress
+      namespace: default
+    annotations:
+      dns.configuration/type: "cloudflare"
+      dns.configuration/source: "cloudflare-config"
+    spec:
+      rules:
+        - host: "example.com"
+          http:
+            paths:
+              - path: "/"
+                pathType: Prefix
+                backend:
+                  service:
+                    name: example-service
+                    port:
+                      number: 80
 
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+### BIND-basierte DNS-Einträge
 
-**NOTE:** Run `make help` for more information on all potential `make` targets
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: example-ingress
+      namespace: default
+      annotations:
+        dns.configuration/type: "bind"
+        dns.configuration/source: "bind-config"
+    spec:
+      rules:
+        - host: "example.org"
+          http:
+            paths:
+              - path: "/"
+                pathType: Prefix
+                backend:
+                  service:
+                    name: example-service
+                    port:
+                      number: 80
 
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+# Wie der Operator funktioniert
 
-## License
+	1.	Beobachtung von Ingress-Ressourcen:
+Der Operator beobachtet Ingress-Objekte im Cluster.
+	2.	Prüfung der Annotationen:
+Der Operator verarbeitet nur Ingress-Ressourcen mit gültigen DNS-Annotationen.
+	3.	DNS-Einträge aktualisieren:
+	•	Neue Domains werden hinzugefügt.
+	•	Nicht mehr verwendete Domains werden entfernt.
+	4.	Finalizer-Verwaltung:
+Vor dem Löschen eines Ingress-Objekts werden alle zugehörigen DNS-Einträge entfernt.
+	5.	LoadBalancer-IP abrufen:
+Die IP des Traefik-LoadBalancers wird aus dem Service-Status geladen und für DNS-Einträge verwendet.
 
-Copyright 2024.
+# Voraussetzungen
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+	1.	Ein funktionierender Kubernetes-Cluster.
+	2.	Ein installierter und konfigurierter Traefik-LoadBalancer.
+	3.	Die ConfigMap dns-operator-config.
+	4.	Ggf. weitere ConfigMaps oder Secrets für DNS-Provider (z. B. Cloudflare oder BIND).
 
