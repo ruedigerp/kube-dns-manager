@@ -28,25 +28,25 @@ To enable DNS management, you must annotate your Ingress resources with the foll
 
 ## Example Ingress
 
-  apiVersion: networking.k8s.io/v1  
-  kind: Ingress  
-  metadata:  
-    name: example-ingress  
-    annotations:  
-      dns.configuration/type: "cloudflare"  
-      dns.configuration/source: "example-com-dns-config"  
-  spec:  
-    rules:  
-      - host: "example.com"  
-        http:  
-          paths:  
-            - path: "/"  
-              pathType: ImplementationSpecific  
-              backend:  
-                service:  
-                  name: example-service  
-                  port:  
-                    number: 80  
+    apiVersion: networking.k8s.io/v1  
+    kind: Ingress  
+    metadata:  
+      name: example-ingress  
+      annotations:  
+        dns.configuration/type: "cloudflare"  
+        dns.configuration/source: "example-com-dns-config"  
+    spec:  
+      rules:  
+        - host: "example.com"  
+          http:  
+            paths:  
+              - path: "/"  
+                pathType: ImplementationSpecific  
+                backend:  
+                  service:  
+                    name: example-service  
+                    port:  
+                      number: 80  
 
 # Operator Configuration
 
