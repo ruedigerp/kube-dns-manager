@@ -5,15 +5,15 @@ The Ingress DNS Operator automatically manages DNS records for Kubernetes Ingres
 ## Features
 
 1.	Dynamic DNS Record Management
-  •	Automatically creates, updates, or deletes DNS records for Ingress resources.
+  -	Automatically creates, updates, or deletes DNS records for Ingress resources.
 2.	Traefik Integration
-  •	Retrieves the LoadBalancer IP of a Traefik service for use in DNS records.
+  -	Retrieves the LoadBalancer IP of a Traefik service for use in DNS records.
 3.	Support for Multiple DNS Providers
-    •	Works with Cloudflare and BIND via annotations.
+  - Works with Cloudflare and BIND via annotations.
 4.	Finalizer Mechanism
-    •	Ensures proper cleanup of DNS records when ingress resources are deleted.
+  - Ensures proper cleanup of DNS records when ingress resources are deleted.
 5.	Exclude Domains
-    •	Configurable list of domains to exclude from DNS management.
+  - Configurable list of domains to exclude from DNS management.
 
 # Ingress Configuration
 
@@ -120,19 +120,19 @@ The operator uses either a ConfigMap or a Secret to store credentials and config
 
 # Operator Workflow
 
-	1.	Create or Update Ingress
-	•	Extracts the domains from the ingress rules.
-	•	Filters excluded domains.
-	•	Retrieves the LoadBalancer IP from the Traefik service.
-	•	Adds or updates DNS A and TXT records.
-	2.	Delete Ingress
-	•	Uses a finalizer to clean up associated DNS records.
-	•	Removes A and TXT records for the ingress domains.
+1.	Create or Update Ingress
+  - Extracts the domains from the ingress rules.
+  - Filters excluded domains.
+  - Retrieves the LoadBalancer IP from the Traefik service.
+  - Adds or updates DNS A and TXT records.
+2.	Delete Ingress
+  - Uses a finalizer to clean up associated DNS records.
+  - Removes A and TXT records for the ingress domains.
 
 # Known Limitations
 
-	•	Only supports A and TXT DNS records.
-	•	Requires manual setup of the ConfigMap and Secret for DNS providers.
+  - Only supports A and TXT DNS records.
+  - Requires manual setup of the ConfigMap and Secret for DNS providers.
 
 This README provides a comprehensive guide to setting up and using the Ingress DNS Operator. For additional details or support, feel free to contact the project maintainers.
 
@@ -143,20 +143,20 @@ Der DNS Operator automatisiert die Verwaltung von DNS-Einträgen für Kubernetes
 
 ## Funktionalität des Operators
 
-	1.	Verarbeiten von Ingress-Ressourcen:
-Der Operator beobachtet Ingress-Ressourcen im Cluster und reagiert auf Änderungen oder neue Ressourcen.
-	2.	DNS-Typen:
-Der Operator unterstützt zwei DNS-Typen, die über die Annotation dns.configuration/type festgelegt werden:
-	•	bind: Erstellt und verwaltet DNS-Einträge über BIND.
-	•	cloudflare: Verwendet die Cloudflare-API zur Verwaltung von DNS-Einträgen.
-	3.	Quellen für DNS-Konfiguration:
-Die spezifischen Konfigurationen für den DNS-Server werden aus einer ConfigMap oder einem Secret geladen. Die Quelle wird über die Annotation dns.configuration/source definiert.
-	4.	LoadBalancer-IP:
-Der Operator extrahiert die LoadBalancer-IP des Traefik-Services und verwendet diese für die Erstellung der DNS-Einträge.
-	5.	Finalizer:
-Der Operator fügt einen Finalizer zu Ingress-Objekten hinzu, um sicherzustellen, dass die DNS-Einträge vor der endgültigen Löschung der Ressource entfernt werden.
-	6.	Domain-Filter:
-Domains können durch die ConfigMap-Einstellungen ausgeschlossen werden.
+1. Verarbeiten von Ingress-Ressourcen:
+  - Der Operator beobachtet Ingress-Ressourcen im Cluster und reagiert auf Änderungen oder neue Ressourcen.
+2.	DNS-Typen:
+  - Der Operator unterstützt zwei DNS-Typen, die über die Annotation dns.configuration/type festgelegt werden:
+	- bind: Erstellt und verwaltet DNS-Einträge über BIND.
+    - cloudflare: Verwendet die Cloudflare-API zur Verwaltung von DNS-Einträgen.
+3.	Quellen für DNS-Konfiguration:
+  - Die spezifischen Konfigurationen für den DNS-Server werden aus einer ConfigMap oder einem Secret geladen. Die Quelle wird über die Annotation dns.configuration/source definiert.
+4.	LoadBalancer-IP:
+  - Der Operator extrahiert die LoadBalancer-IP des Traefik-Services und verwendet diese für die Erstellung der DNS-Einträge.
+5.	Finalizer:
+  - Der Operator fügt einen Finalizer zu Ingress-Objekten hinzu, um sicherzustellen, dass die DNS-Einträge vor der endgültigen Löschung der Ressource entfernt werden.
+6.	Domain-Filter:
+  - Domains können durch die ConfigMap-Einstellungen ausgeschlossen werden.
 
 ## Annotationen für Ingress-Ressourcen
 
@@ -276,22 +276,22 @@ Je nach dns.configuration/source müssen entweder eine ConfigMap oder ein Secret
 
 # Wie der Operator funktioniert
 
-	1.	Beobachtung von Ingress-Ressourcen:
-Der Operator beobachtet Ingress-Objekte im Cluster.
-	2.	Prüfung der Annotationen:
-Der Operator verarbeitet nur Ingress-Ressourcen mit gültigen DNS-Annotationen.
-	3.	DNS-Einträge aktualisieren:
-	•	Neue Domains werden hinzugefügt.
-	•	Nicht mehr verwendete Domains werden entfernt.
-	4.	Finalizer-Verwaltung:
-Vor dem Löschen eines Ingress-Objekts werden alle zugehörigen DNS-Einträge entfernt.
-	5.	LoadBalancer-IP abrufen:
-Die IP des Traefik-LoadBalancers wird aus dem Service-Status geladen und für DNS-Einträge verwendet.
+1.	Beobachtung von Ingress-Ressourcen:
+  - Der Operator beobachtet Ingress-Objekte im Cluster.
+2.	Prüfung der Annotationen:
+  - Der Operator verarbeitet nur Ingress-Ressourcen mit gültigen DNS-Annotationen.
+3.	DNS-Einträge aktualisieren:
+  - Neue Domains werden hinzugefügt.
+  - Nicht mehr verwendete Domains werden entfernt.
+4.	Finalizer-Verwaltung:
+  - Vor dem Löschen eines Ingress-Objekts werden alle zugehörigen DNS-Einträge entfernt.
+5.	LoadBalancer-IP abrufen:
+  - Die IP des Traefik-LoadBalancers wird aus dem Service-Status geladen und für DNS-Einträge verwendet.
 
 # Voraussetzungen
 
-	1.	Ein funktionierender Kubernetes-Cluster.
-	2.	Ein installierter und konfigurierter Traefik-LoadBalancer.
-	3.	Die ConfigMap dns-operator-config.
-	4.	Ggf. weitere ConfigMaps oder Secrets für DNS-Provider (z. B. Cloudflare oder BIND).
+1.	Ein funktionierender Kubernetes-Cluster.
+2.	Ein installierter und konfigurierter Traefik-LoadBalancer.
+3.	Die ConfigMap dns-operator-config.
+4.	Ggf. weitere ConfigMaps oder Secrets für DNS-Provider (z. B. Cloudflare oder BIND).
 
