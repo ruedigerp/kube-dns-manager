@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.25.6
 
 require (
-	github.com/miekg/dns v1.1.70
+	github.com/miekg/dns v1.1.72
 	github.com/onsi/ginkgo/v2 v2.27.5
 	github.com/onsi/gomega v1.39.0
 	gopkg.in/yaml.v3 v3.0.1
